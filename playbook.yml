@@ -1,0 +1,38 @@
+---
+
+- name: Run the nusenu.relayor role and include custom vars
+  remote_user: root
+  hosts: '{{ target }}'
+  vars_files:
+    - vars/main.yml
+  roles:
+    - nusenu.relayor
+
+  pre_tasks:
+
+ # - set_fact:
+ #     ansible_python_interpreter: "/usr/bin/python3"
+
+  - name: Fetch Tor GPG key
+    ansible.builtin.shell: wget -qO- https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --import
+    args:
+      executable: /bin/bash
+
+  - name: Import Tor GPG key
+    ansible.builtin.shell: gpg --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | apt-key add -
+    args:
+      executable: /bin/bash
+
+  - name: Ensure unbound is installed
+    apt:
+      name: unbound
+      state: present
+
+  - name: Copy resolv.conf
+    copy:
+      src: files/resolv.conf
+      dest: /etc/resolv.conf
+      owner: root
+      group: root
+      mode: '0644'
+      backup: yes

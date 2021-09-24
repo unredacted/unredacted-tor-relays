@@ -1,0 +1,264 @@
+---
+
+# Non-default vars
+tor_ContactInfo: "email:admin[@]unredacted.org url:unredacted.org proof:uri-rsa ciissversion:2"
+tor_nicknamefile: files/nicknames.csv
+tor_AbuseEmailAddress: "abuse[@]unredacted.org"
+
+tor_user: _tor
+tor_packages: tor
+tor_package_state: latest
+
+# The tor_ports dictionary defines how many instances are created per
+# available IP address and what ports are used.
+# min entries: 1
+# max entries: 2
+tor_ports:
+  - orport: 443
+    dirport: 80
+
+# Limit the amount of used IP addresses
+# by default to 1, this limits the amount
+# of generated Tor instances to 2 per host.
+# Specifying tor_ips overwrites this limitation.
+tor_maxPublicIPs: 1
+
+# We only use a single private IP by default since
+# we can not reliably tell whether we are NATed
+# to more than a single public IP address
+tor_maxPrivateIPs: 0
+
+tor_NoExec: 1
+
+# we are a non-exit by default
+# setting this to true will enable reduced exit policy
+# and allow custom exit policies via tor_ExitPolicy
+# Logic is implemented in templates/torrc
+tor_ExitRelay: True
+
+# deploy default tor-exit-notice.html if we are an exit
+tor_ExitNoticePage: True
+
+# automatically detect IPv6 addresses and enable IPv6 ORPort
+tor_IPv6: True
+
+# enable IPv6 exiting
+# the following var only matters if
+# tor_ExitRelay and tor_IPv6 is True
+tor_IPv6Exit: True
+
+# on FreeBSD we increase the following kernel
+# settings if they are lower than that.
+# minimal kern.ipc.somaxconn value
+tor_freebsd_somaxconn: 1024
+# minimal kern.ipc.nmbclusters value
+tor_freebsd_nmbclusters: 30000
+
+# Attention: we will run chown tor_user on these folders
+tor_DataDir: /var/lib/tor
+tor_PidDir: /var/run/tor-instances
+
+# Create a backup of the torrc file on the tor server whenever the file is changed.
+# You might want to disable this if you use other means of backups or version
+# control, for example etckeeper.
+tor_backup_torrc: yes
+
+# specify tor's loglevel
+tor_LogLevel: notice
+
+# Where do you want to store key material on the
+# ansible control machine?
+tor_offline_masterkey_dir: ~/.tor/offlinemasterkeys
+
+# How long should online keys/certs be valid before expiring?
+tor_signingkeylifetime_days: 90
+
+# this var is used for apt sources.list entries
+tor_distribution_release: "{{ ansible_lsb.codename }}"
+
+# filter potentially malicious input from relay-provided IPv4/v6 addresses
+# https://docs.ansible.com/ansible/playbooks_filters_ipaddr.html
+tor_available_public_ipv4s: "{{ ansible_all_ipv4_addresses| ipv4('address') | ipv4('public') }}"
+tor_v4ips: "{{ tor_available_public_ipv4s[0:tor_maxPublicIPs] }}"
+tor_ipv4_count: "{{ tor_v4ips | length|int }}"
+
+# we can not use more IPv6 IPs than we have IPv4 IPs so we truncate (but fewer is ok)
+tor_available_public_ipv6s: "{{ ansible_all_ipv6_addresses|ipv6('public')|ipv6('address') }}"
+
+
+# This var enables autoconfiguration for OutboundBindAddressExit
+tor_dedicatedExitIP: False
+
+# the following line is commented out and handled in ip-list.yml until
+# https://github.com/ansible/ansible/issues/14829
+# gets fixed
+#tor_v6ips: "{{ tor_v6tmp[0:tor_ipv4_count|int]|ipv6('address') }}"
+
+tor_RunAsDaemon: 1
+
+# we do not support non-zero SocksPorts
+# setting it to everything but 0 will break things
+tor_SocksPort: 0
+
+tor_enableControlSocket: False
+
+# setting tor_alpha to True
+# will install tor alpha repos.
+# This is only supported for Debian/Ubuntu
+tor_alpha: False
+tor_nightly_builds: False
+
+# known problem: requires manual adjustment with every major tor release
+tor_alpha_version: experimental-0.4.2.x
+
+# Path to the tor-exit-notice HTML file
+tor_exit_notice_file: tor-exit-notice.html
+
+# List of blacklisted DNS resolvers
+#
+# Google DNS IPs:
+#  8.8.8.8
+#  8.8.4.4
+#  2001:4860:4860::8888
+#  2001:4860:4860::8844
+#  taken from: https://developers.google.com/speed/public-dns/docs/using#google_public_dns_ip_addresses
+#
+# OpenDNS IPs:
+#  208.67.222.123
+#  208.67.220.123
+#  208.67.222.222
+#  208.67.220.220
+#  2620:119:35::35
+#  2620:119:53::53
+#  taken from: https://www.opendns.com/setupguide/
+#  taken from: https://www.opendns.com/about/innovations/ipv6/
+#
+# CloudFlare DNS IPs:
+#  1.1.1.1
+#  1.0.0.1
+#  2606:4700:4700::1111
+#  2606:4700:4700::1001
+#  taken from: https://1.1.1.1/
+#
+# Quad9 DNS IPs:
+#  9.9.9.9
+#  9.9.9.10
+#  149.112.112.10
+#  149.112.112.112
+#  2620:fe::fe
+#  2620:fe::9
+#  2620:fe::10
+#  2620:fe::fe:10
+#  taken from: https://www.quad9.com/faq/
+#
+# Level 3
+#  4.2.2.1-6
+#
+# Potential future candidates:
+# ----------------------------
+#
+# ISC.org: 204.152.184.76
+#
+# Background:
+#  https://nymity.ch/dns-traffic-correlation/.
+#  https://medium.com/@nusenu/who-controls-tors-dns-traffic-a74a7632e8ca
+
+tor_dnsresolver_blacklist:
+  - 8\.8\.8\.8
+  - 8\.8\.4\.4
+  - 2001:4860:4860:.*:8888
+  - 2001:4860:4860:.*:8844
+  - 208\.67\.222\.123
+  - 208\.67\.220\.123
+  - 208\.67\.222\.222
+  - 208\.67\.220\.220
+  - 2620:119:35:.*:35
+  - 2620:119:53:.*:53
+  - 1\.1\.1\.1
+  - 1\.0\.0\.1
+  - 2606:4700:4700:.*:1111
+  - 2606:4700:4700:.*:1001
+  - 9\.9\.9\.9
+  - 9\.9\.9\.10
+  - 149\.112\.112\.10
+  - 149\.112\.112\.112
+  - 2620:fe:.*:fe
+  - 2620:fe:.*:9
+  - 2620:fe:.*:10
+  - 2620:fe:.*:fe:10
+  - 4\.2\.2\.[1-6]
+
+# Construction of grep command to
+# match blacklisted DNS resolvers
+tor_resolvconf_path: /etc/resolv.conf
+tor_dns_resolver_blacklist_pattern: "{% for IP in tor_dnsresolver_blacklist %}{{ '-e \"^nameserver ' + IP + '[[:space:]]*$\" ' }}{% endfor %}"
+tor_grep_blacklisted_dnsresolvers: "{{ [ 'grep -qE', tor_dns_resolver_blacklist_pattern, tor_resolvconf_path ] | join(' ') }}"
+
+# Default exit policy if the user wants to be an exit but doesn't specify one
+# taken from https://trac.torproject.org/projects/tor/wiki/doc/ReducedExitPolicy
+tor_ExitPolicy:
+  - accept *:20-22
+  - accept *:43
+  - accept *:53
+  - accept *:79-81
+  - accept *:194
+  - accept *:220
+  - accept *:389
+  - accept *:443
+  - accept *:465
+  - accept *:531
+  - accept *:543-544
+  - accept *:554
+  - accept *:563
+  - accept *:587
+  - accept *:636
+  - accept *:706
+  - accept *:853
+  - accept *:873
+  - accept *:902-904
+  - accept *:981
+  - accept *:989-995
+  - accept *:1194
+  - accept *:1220
+  - accept *:1293
+  - accept *:1500
+  - accept *:1533
+  - accept *:1677
+  - accept *:1723
+  - accept *:1755
+  - accept *:1863
+  - accept *:2082
+  - accept *:2083
+  - accept *:2086-2087
+  - accept *:2095-2096
+  - accept *:2102-2104
+  - accept *:3128
+  - accept *:3690
+  - accept *:4321
+  - accept *:4643
+  - accept *:5050
+  - accept *:5190
+  - accept *:5222-5223
+  - accept *:5228
+  - accept *:5900
+  - accept *:6660-6669
+  - accept *:6679
+  - accept *:6697
+  - accept *:8000
+  - accept *:8008
+  - accept *:8074
+  - accept *:8080
+  - accept *:8082
+  - accept *:8087-8088
+  - accept *:8332-8333
+  - accept *:8443
+  - accept *:8888
+  - accept *:9418
+  - accept *:9999
+  - accept *:10000
+  - accept *:11371
+  - accept *:19294
+  - accept *:19638
+  - accept *:50002
+  - accept *:64738
+  - reject *:*
