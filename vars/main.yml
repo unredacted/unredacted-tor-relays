@@ -8,6 +8,12 @@ tor_AbuseEmailAddress: "abuse[@]unredacted.org"
 tor_user: _tor
 tor_packages: tor
 tor_package_state: latest
+tor_binary: tor
+
+tor_config: {}
+
+tor_gen_ciiss_proof_files: False
+tor_ciiss_proof_folder: '~/.tor'
 
 # The tor_ports dictionary defines how many instances are created per
 # available IP address and what ports are used.
@@ -27,8 +33,6 @@ tor_maxPublicIPs: 1
 # we can not reliably tell whether we are NATed
 # to more than a single public IP address
 tor_maxPrivateIPs: 0
-
-tor_NoExec: 1
 
 # we are a non-exit by default
 # setting this to true will enable reduced exit policy
@@ -85,6 +89,7 @@ tor_ipv4_count: "{{ tor_v4ips | length|int }}"
 # we can not use more IPv6 IPs than we have IPv4 IPs so we truncate (but fewer is ok)
 tor_available_public_ipv6s: "{{ ansible_all_ipv6_addresses|ipv6('public')|ipv6('address') }}"
 
+tor_apt_update_cache: yes
 
 # This var enables autoconfiguration for OutboundBindAddressExit
 tor_dedicatedExitIP: False
@@ -96,10 +101,6 @@ tor_dedicatedExitIP: False
 
 tor_RunAsDaemon: 1
 
-# we do not support non-zero SocksPorts
-# setting it to everything but 0 will break things
-tor_SocksPort: 0
-
 tor_enableControlSocket: False
 
 # setting tor_alpha to True
@@ -109,7 +110,27 @@ tor_alpha: False
 tor_nightly_builds: False
 
 # known problem: requires manual adjustment with every major tor release
-tor_alpha_version: experimental-0.4.2.x
+tor_alpha_version: experimental
+
+# MetricsPort variables
+tor_enableMetricsPort: False
+tor_MetricsPort_offset: 33300
+
+# prometheus (tor MetricsPort) related vars
+# On which host should we generate the prometheus scrape config? (delegate_to)
+# tor_prometheus_host: 127.0.0.1
+# # file path to the scrape config
+# tor_prometheus_scrape_file: "~/.tor/tor-prometheus-scrape-configs"
+# tor_blackbox_exporter_host: localhost:9115
+# tor_gen_blackbox_scrape_config: False
+# tor_blackbox_exporter_scheme: http
+# tor_blackbox_exporter_password: "{{ lookup('password', '~/.tor/blackbox_exporter_password') }}"
+
+# tor_prometheus_scrape_password_folder: "~/.tor/prometheus/scrape-passwords/"
+# tor_prometheus_scrape_port: 443
+# tor_gen_metricsport_htpasswd: False
+# tor_metricsport_htpasswd_file: "/etc/nginx/tor_metricsport_htpasswd"
+# tor_metricsport_htpasswd_file_owner: "www-data"
 
 # Path to the tor-exit-notice HTML file
 tor_exit_notice_file: tor-exit-notice.html
@@ -174,8 +195,6 @@ tor_dnsresolver_blacklist:
   - 208\.67\.220\.220
   - 2620:119:35:.*:35
   - 2620:119:53:.*:53
-  - 1\.1\.1\.1
-  - 1\.0\.0\.1
   - 2606:4700:4700:.*:1111
   - 2606:4700:4700:.*:1001
   - 9\.9\.9\.9
@@ -197,7 +216,6 @@ tor_grep_blacklisted_dnsresolvers: "{{ [ 'grep -qE', tor_dns_resolver_blacklist_
 # Default exit policy if the user wants to be an exit but doesn't specify one
 # taken from https://trac.torproject.org/projects/tor/wiki/doc/ReducedExitPolicy
 tor_ExitPolicy:
-  - accept *:20-22
   - accept *:43
   - accept *:53
   - accept *:79-81
