@@ -11,6 +11,11 @@ tor_package_state: latest
 tor_binary: tor
 
 tor_config: {}
+tor_prom_labels: {}
+# example:
+# tor_prom_labels:
+#   label1: "value1"
+#   label2: "value2"
 
 tor_gen_ciiss_proof_files: False
 tor_ciiss_proof_folder: '~/.tor'
@@ -77,17 +82,17 @@ tor_offline_masterkey_dir: ~/.tor/offlinemasterkeys
 # How long should online keys/certs be valid before expiring?
 tor_signingkeylifetime_days: 90
 
-# this var is used for apt sources.list entries
-tor_distribution_release: "{{ ansible_lsb.codename }}"
+# # this var is used for apt sources.list entries
+# tor_distribution_release: "{{ ansible_lsb.codename }}"
 
-# filter potentially malicious input from relay-provided IPv4/v6 addresses
-# https://docs.ansible.com/ansible/playbooks_filters_ipaddr.html
-tor_available_public_ipv4s: "{{ ansible_all_ipv4_addresses| ipv4('address') | ipv4('public') }}"
-tor_v4ips: "{{ tor_available_public_ipv4s[0:tor_maxPublicIPs] }}"
-tor_ipv4_count: "{{ tor_v4ips | length|int }}"
+# # filter potentially malicious input from relay-provided IPv4/v6 addresses
+# # https://docs.ansible.com/ansible/playbooks_filters_ipaddr.html
+# tor_available_public_ipv4s: "{{ ansible_all_ipv4_addresses| ipv4('address') | ipv4('public') }}"
+# tor_v4ips: "{{ tor_available_public_ipv4s[0:tor_maxPublicIPs] }}"
+# tor_ipv4_count: "{{ tor_v4ips | length|int }}"
 
-# we can not use more IPv6 IPs than we have IPv4 IPs so we truncate (but fewer is ok)
-tor_available_public_ipv6s: "{{ ansible_all_ipv6_addresses|ipv6('public')|ipv6('address') }}"
+# # we can not use more IPv6 IPs than we have IPv4 IPs so we truncate (but fewer is ok)
+# tor_available_public_ipv6s: "{{ ansible_all_ipv6_addresses|ipv6('public')|ipv6('address') }}"
 
 tor_apt_update_cache: yes
 
@@ -185,27 +190,27 @@ tor_exit_notice_file: tor-exit-notice.html
 #  https://medium.com/@nusenu/who-controls-tors-dns-traffic-a74a7632e8ca
 
 tor_dnsresolver_blacklist:
-  - 8\.8\.8\.8
-  - 8\.8\.4\.4
-  - 2001:4860:4860:.*:8888
-  - 2001:4860:4860:.*:8844
-  - 208\.67\.222\.123
-  - 208\.67\.220\.123
-  - 208\.67\.222\.222
-  - 208\.67\.220\.220
-  - 2620:119:35:.*:35
-  - 2620:119:53:.*:53
-  - 2606:4700:4700:.*:1111
-  - 2606:4700:4700:.*:1001
+  # - 8\.8\.8\.8
+  # - 8\.8\.4\.4
+  # - 2001:4860:4860:.*:8888
+  # - 2001:4860:4860:.*:8844
+  # - 208\.67\.222\.123
+  # - 208\.67\.220\.123
+  # - 208\.67\.222\.222
+  # - 208\.67\.220\.220
+  # - 2620:119:35:.*:35
+  # - 2620:119:53:.*:53
+  # - 2606:4700:4700:.*:1111
+  # - 2606:4700:4700:.*:1001
   - 9\.9\.9\.9
   - 9\.9\.9\.10
-  - 149\.112\.112\.10
-  - 149\.112\.112\.112
-  - 2620:fe:.*:fe
-  - 2620:fe:.*:9
-  - 2620:fe:.*:10
-  - 2620:fe:.*:fe:10
-  - 4\.2\.2\.[1-6]
+  # - 149\.112\.112\.10
+  # - 149\.112\.112\.112
+  # - 2620:fe:.*:fe
+  # - 2620:fe:.*:9
+  # - 2620:fe:.*:10
+  # - 2620:fe:.*:fe:10
+  # - 4\.2\.2\.[1-6]
 
 # Construction of grep command to
 # match blacklisted DNS resolvers
@@ -216,6 +221,7 @@ tor_grep_blacklisted_dnsresolvers: "{{ [ 'grep -qE', tor_dns_resolver_blacklist_
 # Default exit policy if the user wants to be an exit but doesn't specify one
 # taken from https://trac.torproject.org/projects/tor/wiki/doc/ReducedExitPolicy
 tor_ExitPolicy:
+#  - accept *:20-22 # disabled due to abuse
   - accept *:43
   - accept *:53
   - accept *:79-81
@@ -223,12 +229,12 @@ tor_ExitPolicy:
   - accept *:220
   - accept *:389
   - accept *:443
-  - accept *:465
+#  - accept *:465 # disabled due to abuse
   - accept *:531
   - accept *:543-544
   - accept *:554
   - accept *:563
-  - accept *:587
+#  - accept *:587 # disabled due to abuse
   - accept *:636
   - accept *:706
   - accept *:853
