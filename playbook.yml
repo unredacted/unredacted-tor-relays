@@ -11,37 +11,72 @@
       - 255EE68D31F265C768A43907EB00449D674F0FD2
       - 1A48C9E54CE95D9A123D46C6356DEAD8E5F61037
   roles:
-    #- nusenu.relayor
-    - ~/Documents/ansible/ansible-relayor
+    - nusenu.relayor
 
   pre_tasks:
   
  # - set_fact:
  #     ansible_python_interpreter: "/usr/bin/python3"
 
-  # - name: Fetch Tor GPG key
-  #   ansible.builtin.shell: wget -qO- https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --import
-  #   args:
-  #     executable: /bin/bash
+  - name: Create system bootstrap script
+    ansible.builtin.copy:
+      dest: /usr/local/bin/system-bootstrap.sh
+      mode: '0755'
+      content: |
+        #!/bin/bash
 
-  # - name: Import Tor GPG key
-  #   ansible.builtin.shell: gpg --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | apt-key add -
-  #   args:
-  #     executable: /bin/bash
+        IPT=/sbin/iptables
 
-  # - name: Ensure unbound is installed
-  #   apt:
-  #     name: unbound
-  #     state: present
+        # Clamp TCP MSS to 1300 on input and output chains
+        $IPT -t mangle -C OUTPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1300 2>/dev/null || \
+        $IPT -t mangle -A OUTPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1300
 
-  # - name: Copy resolv.conf
-  #   copy:
-  #     src: files/resolv.conf
-  #     dest: /etc/resolv.conf
-  #     owner: root
-  #     group: root
-  #     mode: '0644'
-  #     backup: yes
+        $IPT -t mangle -C INPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1300 2>/dev/null || \
+        $IPT -t mangle -A INPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1300
+        echo "MSS clamp applied"
+
+  - name: Create systemd unit to apply system bootstrap script boot
+    ansible.builtin.copy:
+      dest: /etc/systemd/system/system-bootstrap.service
+      content: |
+        [Unit]
+        Description=Apply system bootstrap script
+        After=network-online.target
+        Wants=network-online.target
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/local/bin/system-bootstrap.sh
+        RemainAfterExit=yes
+
+        [Install]
+        WantedBy=multi-user.target
+
+  - name: Enable and start system bootstrap systemd service
+    ansible.builtin.systemd:
+      name: system-bootstrap.service
+      enabled: yes
+      state: started
+
+  - name: Ensure unbound is installed
+    apt:
+      name: unbound
+      state: present
+
+  - name: Ensure unbound is enabled and started
+    ansible.builtin.service:
+      name: unbound
+      state: started
+      enabled: yes
+
+  - name: Copy resolv.conf
+    copy:
+      src: files/resolv.conf
+      dest: /etc/resolv.conf
+      owner: root
+      group: root
+      mode: '0644'
+      backup: yes
 
   # - name: Set net.ipv4.tcp_fin_timeout to defined value
   #   sysctl:
