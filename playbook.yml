@@ -26,14 +26,21 @@
         #!/bin/bash
 
         IPT=/sbin/iptables
+        IP6T=/sbin/ip6tables
 
-        # Clamp TCP MSS to 1300 on input and output chains
-        $IPT -t mangle -C OUTPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1300 2>/dev/null || \
-        $IPT -t mangle -A OUTPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1300
+        # Clamp TCP MSS to 1354 for IPv4 on input and output chains
+        $IPT -t mangle -C OUTPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1354 2>/dev/null || \
+        $IPT -t mangle -A OUTPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1354
+        $IPT -t mangle -C INPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1354 2>/dev/null || \
+        $IPT -t mangle -A INPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1354
+        echo "IPv4 MSS clamp applied"
 
-        $IPT -t mangle -C INPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1300 2>/dev/null || \
-        $IPT -t mangle -A INPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1300
-        echo "MSS clamp applied"
+        # Clamp TCP MSS to 1334 for IPv4 on input and output chains
+        $IP6T -t mangle -C OUTPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1334 2>/dev/null || \
+        $IP6T -t mangle -A OUTPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1334
+        $IP6T -t mangle -C INPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1334 2>/dev/null || \
+        $IP6T -t mangle -A INPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1334
+        echo "IPv6 MSS clamp applied"
 
   - name: Create systemd unit to apply system bootstrap script boot
     ansible.builtin.copy:
